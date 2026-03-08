@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Block Dodger</title>
+  <title>Block Dodger Shop</title>
   <style>
     body {
       margin: 0;
@@ -22,30 +22,115 @@
       margin: 5px 0 10px;
     }
 
+    #topBar {
+      margin: 10px auto;
+      width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #stats {
+      text-align: left;
+      font-size: 18px;
+    }
+
+    #shop {
+      width: 500px;
+      margin: 10px auto;
+      background: #222;
+      border: 2px solid white;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    #shop h2 {
+      margin: 0 0 10px 0;
+      font-size: 22px;
+    }
+
+    .skin-btn {
+      margin: 4px;
+      padding: 8px 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      border-radius: 6px;
+    }
+
     canvas {
       background: #222;
       display: block;
       margin: 0 auto;
       border: 2px solid white;
     }
+
+    #message {
+      margin-top: 8px;
+      min-height: 24px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
   <h1>Block Dodger</h1>
   <p>Move with Left and Right arrow keys</p>
+
+  <div id="topBar">
+    <div id="stats">
+      <div>Score: <span id="scoreText">0</span></div>
+      <div>Coins: <span id="coinsText">0</span></div>
+      <div>Skin: <span id="skinText">white</span></div>
+    </div>
+  </div>
+
+  <div id="shop">
+    <h2>Skin Shop (100 coins each)</h2>
+    <button class="skin-btn" onclick="buyOrUseSkin('red')" style="background:red;color:white;">Red</button>
+    <button class="skin-btn" onclick="buyOrUseSkin('orange')" style="background:orange;color:black;">Orange</button>
+    <button class="skin-btn" onclick="buyOrUseSkin('yellow')" style="background:yellow;color:black;">Yellow</button>
+    <button class="skin-btn" onclick="buyOrUseSkin('green')" style="background:green;color:white;">Green</button>
+    <button class="skin-btn" onclick="buyOrUseSkin('blue')" style="background:blue;color:white;">Blue</button>
+    <button class="skin-btn" onclick="buyOrUseSkin('purple')" style="background:purple;color:white;">Purple</button>
+    <div id="message"></div>
+  </div>
+
   <canvas id="gameCanvas" width="500" height="600"></canvas>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
+    const scoreText = document.getElementById("scoreText");
+    const coinsText = document.getElementById("coinsText");
+    const skinText = document.getElementById("skinText");
+    const messageText = document.getElementById("message");
+
+    let coins = 0;
+    let score = 0;
+    let gameOver = false;
+    let frameCount = 0;
+
+    let ownedSkins = {
+      white: true,
+      red: false,
+      orange: false,
+      yellow: false,
+      green: false,
+      blue: false,
+      purple: false
+    };
+
+    let currentSkin = "white";
+
     const player = {
       x: 220,
       y: 550,
       width: 60,
       height: 20,
-      speed: 7,
-      color: "deepskyblue"
+      speed: 7
     };
 
     const keys = {
@@ -54,15 +139,12 @@
     };
 
     let obstacles = [];
-    let score = 0;
-    let gameOver = false;
-    let frameCount = 0;
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowLeft") keys.left = true;
       if (e.key === "ArrowRight") keys.right = true;
 
-      if (e.key === "r" && gameOver) {
+      if ((e.key === "r" || e.key === "R") && gameOver) {
         restartGame();
       }
     });
@@ -72,12 +154,41 @@
       if (e.key === "ArrowRight") keys.right = false;
     });
 
+    function updateUI() {
+      scoreText.textContent = score;
+      coinsText.textContent = coins;
+      skinText.textContent = currentSkin;
+    }
+
+    function showMessage(text) {
+      messageText.textContent = text;
+    }
+
+    function buyOrUseSkin(color) {
+      if (ownedSkins[color]) {
+        currentSkin = color;
+        showMessage("Using " + color + " skin");
+      } else {
+        if (coins >= 100) {
+          coins -= 100;
+          ownedSkins[color] = true;
+          currentSkin = color;
+          showMessage("Bought " + color + " skin");
+        } else {
+          showMessage("Not enough coins for " + color);
+        }
+      }
+      updateUI();
+    }
+
     function restartGame() {
       obstacles = [];
       score = 0;
       frameCount = 0;
       gameOver = false;
       player.x = 220;
+      showMessage("");
+      updateUI();
       gameLoop();
     }
 
@@ -93,6 +204,13 @@
         speed: Math.random() * 3 + 3,
         color: "tomato"
       });
+    }
+
+    function endGame() {
+      gameOver = true;
+      coins += score;
+      updateUI();
+      showMessage("You earned " + score + " coins this round");
     }
 
     function update() {
@@ -121,7 +239,8 @@
           player.y < obstacles[i].y + obstacles[i].height &&
           player.y + player.height > obstacles[i].y
         ) {
-          gameOver = true;
+          endGame();
+          return;
         }
 
         if (obstacles[i].y > canvas.height) {
@@ -130,10 +249,12 @@
           i--;
         }
       }
+
+      updateUI();
     }
 
     function drawPlayer() {
-      ctx.fillStyle = player.color;
+      ctx.fillStyle = currentSkin;
       ctx.fillRect(player.x, player.y, player.width, player.height);
     }
 
@@ -148,14 +269,16 @@
       ctx.fillStyle = "white";
       ctx.font = "24px Arial";
       ctx.fillText("Score: " + score, 20, 30);
+      ctx.fillText("Coins: " + coins, 20, 60);
     }
 
     function drawGameOver() {
       ctx.fillStyle = "white";
       ctx.font = "40px Arial";
-      ctx.fillText("Game Over", 150, 250);
+      ctx.fillText("Game Over", 145, 250);
       ctx.font = "24px Arial";
-      ctx.fillText("Press R to Restart", 155, 300);
+      ctx.fillText("Press R to Restart", 150, 300);
+      ctx.fillText("Round Coins: " + score, 170, 340);
     }
 
     function draw() {
@@ -178,6 +301,7 @@
       }
     }
 
+    updateUI();
     gameLoop();
   </script>
 </body>
