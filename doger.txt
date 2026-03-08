@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Block Dodger</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 10px 0 0;
+    }
+
+    p {
+      margin: 5px 0 10px;
+    }
+
+    canvas {
+      background: #222;
+      display: block;
+      margin: 0 auto;
+      border: 2px solid white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Block Dodger</h1>
+  <p>Move with Left and Right arrow keys</p>
+  <canvas id="gameCanvas" width="500" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const player = {
+      x: 220,
+      y: 550,
+      width: 60,
+      height: 20,
+      speed: 7,
+      color: "deepskyblue"
+    };
+
+    const keys = {
+      left: false,
+      right: false
+    };
+
+    let obstacles = [];
+    let score = 0;
+    let gameOver = false;
+    let frameCount = 0;
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") keys.left = true;
+      if (e.key === "ArrowRight") keys.right = true;
+
+      if (e.key === "r" && gameOver) {
+        restartGame();
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowLeft") keys.left = false;
+      if (e.key === "ArrowRight") keys.right = false;
+    });
+
+    function restartGame() {
+      obstacles = [];
+      score = 0;
+      frameCount = 0;
+      gameOver = false;
+      player.x = 220;
+      gameLoop();
+    }
+
+    function createObstacle() {
+      const width = Math.random() * 60 + 20;
+      const x = Math.random() * (canvas.width - width);
+
+      obstacles.push({
+        x: x,
+        y: -20,
+        width: width,
+        height: 20,
+        speed: Math.random() * 3 + 3,
+        color: "tomato"
+      });
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      frameCount++;
+
+      if (keys.left && player.x > 0) {
+        player.x -= player.speed;
+      }
+
+      if (keys.right && player.x + player.width < canvas.width) {
+        player.x += player.speed;
+      }
+
+      if (frameCount % 30 === 0) {
+        createObstacle();
+      }
+
+      for (let i = 0; i < obstacles.length; i++) {
+        obstacles[i].y += obstacles[i].speed;
+
+        if (
+          player.x < obstacles[i].x + obstacles[i].width &&
+          player.x + player.width > obstacles[i].x &&
+          player.y < obstacles[i].y + obstacles[i].height &&
+          player.y + player.height > obstacles[i].y
+        ) {
+          gameOver = true;
+        }
+
+        if (obstacles[i].y > canvas.height) {
+          obstacles.splice(i, 1);
+          score++;
+          i--;
+        }
+      }
+    }
+
+    function drawPlayer() {
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    function drawObstacles() {
+      for (let obstacle of obstacles) {
+        ctx.fillStyle = obstacle.color;
+        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+      }
+    }
+
+    function drawScore() {
+      ctx.fillStyle = "white";
+      ctx.font = "24px Arial";
+      ctx.fillText("Score: " + score, 20, 30);
+    }
+
+    function drawGameOver() {
+      ctx.fillStyle = "white";
+      ctx.font = "40px Arial";
+      ctx.fillText("Game Over", 150, 250);
+      ctx.font = "24px Arial";
+      ctx.fillText("Press R to Restart", 155, 300);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPlayer();
+      drawObstacles();
+      drawScore();
+
+      if (gameOver) {
+        drawGameOver();
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+
+      if (!gameOver) {
+        requestAnimationFrame(gameLoop);
+      }
+    }
+
+    gameLoop();
+  </script>
+</body>
+</html>
